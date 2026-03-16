@@ -22,7 +22,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Linter Check
-        run: echo "Running linter..." # Replace with your specific linter command if needed (e.g., flake8 .)
+        run: |
+          pip install flake8
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all other issues as warnings instead of failing the pipeline
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Model Dry Test
         run: |
