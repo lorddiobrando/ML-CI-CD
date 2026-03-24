@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, accuracy_score, ConfusionMatrixDisplay
 
+# Changed to force DVC to rerun the training stage in CI
 mlflow.set_experiment("DSAI_406_A3_AmrKhalid_Sklearn_DVC")
 
 def parse_args():
