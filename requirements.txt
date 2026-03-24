@@ -3,3 +3,4 @@ mlflow==3.10.1
 scikit-learn
 dvc
 pandas
+dvc-gdrive
