@@ -20,9 +20,10 @@ def retrieve_latest_run_id():
         if experiment:
             experiment_id = experiment.experiment_id
             
-            # Search for the most recent run in this experiment
+            # Search for the most recent FINISHED run in this experiment
             runs = mlflow.search_runs(
                 experiment_ids=[experiment_id],
+                filter_string="attributes.status = 'FINISHED'",
                 order_by=["attribute.start_time DESC"],
                 max_results=1
             )

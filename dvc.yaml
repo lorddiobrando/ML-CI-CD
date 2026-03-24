@@ -10,5 +10,6 @@ stages:
     deps:
       - train.py
       - data/digits.csv
+    always_changed: true
     # Note: MLflow handles model versioning in this setup, 
     # but we could also track the model file with DVC if needed.
