@@ -4,3 +4,4 @@ scikit-learn
 dvc
 pandas
 dvc-gdrive
+boto3
