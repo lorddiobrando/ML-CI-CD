@@ -5,3 +5,4 @@ dvc
 pandas
 dvc-gdrive
 boto3
+dagshub
