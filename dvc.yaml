@@ -1,0 +1,14 @@
+stages:
+  prepare:
+    cmd: python save_data.py
+    deps:
+      - save_data.py
+    outs:
+      - data/digits.csv
+  train:
+    cmd: python train.py --no-show
+    deps:
+      - train.py
+      - data/digits.csv
+    # Note: MLflow handles model versioning in this setup, 
+    # but we could also track the model file with DVC if needed.
