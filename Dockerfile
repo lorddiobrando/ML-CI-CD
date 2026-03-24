@@ -17,18 +17,8 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # 5. Copy the rest of the application code into the container
+# This includes the 'model' directory downloaded by the GitHub runner
 COPY . .
-
-# MLflow Tracking Configuration
-ARG MLFLOW_TRACKING_URI
-ENV MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-ARG MLFLOW_TRACKING_USERNAME
-ENV MLFLOW_TRACKING_USERNAME=${MLFLOW_TRACKING_USERNAME}
-ARG MLFLOW_TRACKING_PASSWORD
-ENV MLFLOW_TRACKING_PASSWORD=${MLFLOW_TRACKING_PASSWORD}
-
-# Download the model from DagsHub/MLflow
-RUN python download_model.py
 
 # 6. Define the default command to run when the container starts
 CMD ["python", "train.py"]

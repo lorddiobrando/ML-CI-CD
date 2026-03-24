@@ -105,13 +105,11 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: |
           RUN_ID=$(cat model_info.txt)
+          export RUN_ID=$RUN_ID
+          echo "Downloading model on GitHub Runner..."
+          python download_model.py
           echo "Building Docker image for Run ID: $RUN_ID"
-          docker build \
-            --build-arg RUN_ID=$RUN_ID \
-            --build-arg MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI \
-            --build-arg MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME \
-            --build-arg MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD \
-            -t my-ml-model:latest .
+          docker build -t my-ml-model:latest .
 
 
       - name: Deploy Model to MLflow Model Registry
