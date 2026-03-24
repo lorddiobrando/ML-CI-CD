@@ -1,5 +1,6 @@
 import mlflow
 import os
+import sys
 
 def retrieve_latest_run_id():
     """Fetch the latest run ID for the specified experiment and save it to a file."""
@@ -36,10 +37,13 @@ def retrieve_latest_run_id():
                 print("Run ID saved to model_info.txt")
             else:
                 print(f"No runs found for experiment: {experiment_name}")
+                sys.exit(1)
         else:
             print(f"Experiment '{experiment_name}' not found.")
+            sys.exit(1)
     except Exception as e:
         print(f"An error occurred: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     retrieve_latest_run_id()
