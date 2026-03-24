@@ -20,33 +20,58 @@ def download_model():
     print(f"Using MLflow tracking URI: {tracking_uri}")
     print(f"Downloading model for Run ID: {run_id}")
 
-    artifact_path = "mlp_model_dvc"
     auth = (username, password) if username and password else None
-
-    # Step 1: List all files inside the artifact directory
     list_url = f"{tracking_uri}/api/2.0/mlflow/artifacts/list"
-    params = {"run_id": run_id, "path": artifact_path}
 
-    print(f"Listing artifacts at path: {artifact_path}")
+    # Step 1: List ALL artifacts at root to see what exists
+    print("Listing all artifacts at root...")
     try:
-        resp = requests.get(list_url, params=params, auth=auth, timeout=30)
+        resp = requests.get(list_url, params={"run_id": run_id}, auth=auth, timeout=30)
         resp.raise_for_status()
-        data = resp.json()
+        root_data = resp.json()
+        print(f"Root listing response: {json.dumps(root_data, indent=2)}")
     except Exception as e:
-        print(f"Failed to list artifacts: {e}")
+        print(f"Failed to list root artifacts: {e}")
         sys.exit(1)
 
-    files = data.get("files", [])
-    if not files:
-        print(f"No artifacts found at path '{artifact_path}'. Response: {json.dumps(data, indent=2)}")
+    root_files = root_data.get("files", [])
+    if not root_files:
+        print("No artifacts found at root level. The model may not have been logged in this run.")
         sys.exit(1)
 
-    print(f"Found {len(files)} artifact file(s)")
+    # Find the model directory (could be mlp_model_dvc or something else)
+    model_dir = None
+    for f in root_files:
+        print(f"  Found: {f.get('path')} (is_dir={f.get('is_dir', False)})")
+        if f.get("is_dir", False):
+            model_dir = f.get("path")
 
-    # Step 2: Download each file
+    if not model_dir:
+        # If no directories, download all root files directly
+        model_dir = None
+        files_to_download = root_files
+        print("No subdirectories found, downloading root files...")
+    else:
+        print(f"Found model directory: {model_dir}")
+        # Step 2: List files inside the model directory
+        try:
+            resp = requests.get(list_url, params={"run_id": run_id, "path": model_dir}, auth=auth, timeout=30)
+            resp.raise_for_status()
+            dir_data = resp.json()
+            files_to_download = dir_data.get("files", [])
+            print(f"Found {len(files_to_download)} file(s) inside '{model_dir}'")
+        except Exception as e:
+            print(f"Failed to list directory contents: {e}")
+            sys.exit(1)
+
+    if not files_to_download:
+        print("No files found to download.")
+        sys.exit(1)
+
+    # Step 3: Download each file
     os.makedirs("model", exist_ok=True)
 
-    for file_info in files:
+    for file_info in files_to_download:
         file_path = file_info.get("path", "")
         file_name = os.path.basename(file_path)
         if file_info.get("is_dir", False):
