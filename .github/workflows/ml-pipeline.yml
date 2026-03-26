@@ -1,4 +1,4 @@
-name: ML Model CI
+name: DSAI_406_A3_AmrKhalid_Sklearn_DVC
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  validate-and-test:
+  validate:
     runs-on: ubuntu-latest
     steps:          
       - name: Checkout Repository
@@ -19,22 +19,104 @@ jobs:
           python-version: '3.10'
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+
+      - name: DVC Pull from Google Drive
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: |
+          if [ -z "$GDRIVE_CREDENTIALS_DATA" ]; then
+            echo "GDRIVE_CREDENTIALS_DATA secret is not set. Skipping dvc pull."
+          else
+            python -m dvc pull
+          fi
+
 
       - name: Linter Check
         run: |
           pip install flake8
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all other issues as warnings instead of failing the pipeline
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Model Dry Test
+      - name: Run DVC Pipeline
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: |
-          python -c "import torch; print('Model environment ready!')"
-          
-      - name: Upload README Artifact
+          python -m dvc repro
+      
+      - name: Save Model Run
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        run: |
+          python retrieve_run_id.py
+      
+      - name: Save the Model Info Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: project-doc
-          path: README.md
+          name: model-info
+          path: model_info.txt
+
+
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:          
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download Model Info Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: model-info
+          path: .
+
+      - name: Read Run ID
+        run: |
+          RUN_ID=$(cat model_info.txt)
+          echo "Using Run ID: $RUN_ID"
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+      - name: Check Accuracy
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        run: |
+          python check_accuracy.py --run-id $RUN_ID
+
+      - name: Containerize
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          DAGSHUB_USER_TOKEN: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        run: |
+          RUN_ID=$(cat model_info.txt)
+          export RUN_ID=$RUN_ID
+          echo "Downloading model on GitHub Runner..."
+          python download_model.py
+          echo "Building Docker image for Run ID: $RUN_ID"
+          docker build -t my-ml-model:latest .
+
+
+      - name: Deploy Model to MLflow Model Registry
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        run: |
+          python deploy_model.py --run-id $RUN_ID

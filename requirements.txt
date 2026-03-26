@@ -1,5 +1,8 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1
-torchvision==0.20.1
 matplotlib==3.10.8
 mlflow==3.10.1
+scikit-learn
+dvc
+pandas
+dvc-gdrive
+boto3
+dagshub

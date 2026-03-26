@@ -1,0 +1,25 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python save_data.py
+    deps:
+    - path: save_data.py
+      hash: md5
+      md5: 106336f6b8741510e86efb2113b2a63c
+      size: 660
+    outs:
+    - path: data/digits.csv
+      hash: md5
+      md5: 0a8e1c6dcdb0a5d29667a626b65d2cb2
+      size: 496715
+  train:
+    cmd: python train.py --no-show
+    deps:
+    - path: data/digits.csv
+      hash: md5
+      md5: 0a8e1c6dcdb0a5d29667a626b65d2cb2
+      size: 496715
+    - path: train.py
+      hash: md5
+      md5: 2560018f10d5bfc3db56ed04752745cd
+      size: 4058
