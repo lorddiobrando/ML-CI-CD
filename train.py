@@ -17,8 +17,8 @@ def parse_args():
     """Parse CLI options controlling training and model hyperparameters."""
     parser = argparse.ArgumentParser(description="Train an MLP classifier on DVC-tracked digits dataset.")
     parser.add_argument("--seed", type=int, default=42, help="Global random seed.")
-    parser.add_argument("--hidden-layer-sizes", type=str, default="100", help="Hidden layer sizes (comma-separated).")
-    parser.add_argument("--max-iter", type=int, default=200, help="Maximum number of iterations.")
+    parser.add_argument("--hidden-layer-sizes", type=str, default="2", help="Hidden layer sizes (comma-separated).")
+    parser.add_argument("--max-iter", type=int, default=20, help="Maximum number of iterations.")
     parser.add_argument("--no-show", action="store_true", help="Skip matplotlib plots.")
     parser.add_argument("--data-path", type=str, default="data/digits.csv", help="Path to the DVC-tracked CSV.")
     return parser.parse_args()
@@ -48,7 +48,7 @@ def main():
     y = df['target'].values
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=args.seed
+        X, y, test_size=0.8, random_state=args.seed
     )
 
     with mlflow.start_run() as run:
