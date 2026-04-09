@@ -2,12 +2,32 @@ name: DSAI_406_A3_AmrKhalid_Sklearn_DVC
 
 on:
   push:
-    branches-ignore:
+    branches:
+      - dev
       - main
   pull_request:
-
+    branches:
+      - main
 jobs:
-  validate:
+  lint:
+    runs-on: ubuntu-latest
+    steps:          
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Linter Check
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  train:
+    needs: lint
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[run-train]')
     runs-on: ubuntu-latest
     steps:          
       - name: Checkout Repository
@@ -32,12 +52,6 @@ jobs:
             python -m dvc pull
           fi
 
-
-      - name: Linter Check
-        run: |
-          pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
       - name: Run DVC Pipeline
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
@@ -60,10 +74,19 @@ jobs:
           name: model-info
           path: model_info.txt
 
+      - name: Upload Error Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: error_logs.txt
 
+      - name: Cleanup Message
+        if: always()
+        run: echo "Cleaning up temporary cloud volumes..."
 
   deploy:
-    needs: validate
+    needs: train
     runs-on: ubuntu-latest
     steps:          
       - name: Checkout Repository
